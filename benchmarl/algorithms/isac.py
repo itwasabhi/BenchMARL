@@ -8,7 +8,11 @@ from dataclasses import dataclass, MISSING
 from typing import Dict, Iterable, Optional, Tuple, Type, Union
 
 from tensordict import TensorDictBase
-from tensordict.nn import NormalParamExtractor, TensorDictModule, TensorDictSequential
+from tensordict.nn import (
+    NormalParamExtractor,
+    TensorDictModule,
+    TensorDictSequential,
+)
 from torch.distributions import Categorical
 from torchrl.data import Composite, Unbounded
 from torchrl.modules import (
@@ -17,7 +21,12 @@ from torchrl.modules import (
     ProbabilisticActor,
     TanhNormal,
 )
-from torchrl.objectives import DiscreteSACLoss, LossModule, SACLoss, ValueEstimators
+from torchrl.objectives import (
+    DiscreteSACLoss,
+    LossModule,
+    SACLoss,
+    ValueEstimators,
+)
 
 from benchmarl.algorithms.common import Algorithm, AlgorithmConfig
 from benchmarl.models.common import ModelConfig
@@ -142,10 +151,16 @@ class Isac(Algorithm):
         )
         return loss_module, True
 
-    def _get_parameters(self, group: str, loss: LossModule) -> Dict[str, Iterable]:
+    def _get_parameters(
+        self, group: str, loss: LossModule
+    ) -> Dict[str, Iterable]:
         items = {
-            "loss_actor": list(loss.actor_network_params.flatten_keys().values()),
-            "loss_qvalue": list(loss.qvalue_network_params.flatten_keys().values()),
+            "loss_actor": list(
+                loss.actor_network_params.flatten_keys().values()
+            ),
+            "loss_qvalue": list(
+                loss.qvalue_network_params.flatten_keys().values()
+            ),
         }
         if not self.fixed_alpha:
             items.update({"loss_alpha": [loss.log_alpha]})
@@ -200,7 +215,9 @@ class Isac(Algorithm):
                 in_keys=[(group, "loc"), (group, "scale")],
                 out_keys=[(group, "action")],
                 distribution_class=(
-                    IndependentNormal if not self.use_tanh_normal else TanhNormal
+                    IndependentNormal
+                    if not self.use_tanh_normal
+                    else TanhNormal
                 ),
                 distribution_kwargs=(
                     {
@@ -246,7 +263,9 @@ class Isac(Algorithm):
     ) -> TensorDictModule:
         return policy_for_loss
 
-    def process_batch(self, group: str, batch: TensorDictBase) -> TensorDictBase:
+    def process_batch(
+        self, group: str, batch: TensorDictBase
+    ) -> TensorDictBase:
         keys = list(batch.keys(True, True))
         group_shape = batch.get(group).shape
 
@@ -257,7 +276,9 @@ class Isac(Algorithm):
         if nested_done_key not in keys:
             batch.set(
                 nested_done_key,
-                batch.get(("next", "done")).unsqueeze(-1).expand((*group_shape, 1)),
+                batch.get(("next", "done"))
+                .unsqueeze(-1)
+                .expand((*group_shape, 1)),
             )
         if nested_terminated_key not in keys:
             batch.set(
@@ -270,7 +291,9 @@ class Isac(Algorithm):
         if nested_reward_key not in keys:
             batch.set(
                 nested_reward_key,
-                batch.get(("next", "reward")).unsqueeze(-1).expand((*group_shape, 1)),
+                batch.get(("next", "reward"))
+                .unsqueeze(-1)
+                .expand((*group_shape, 1)),
             )
 
         return batch

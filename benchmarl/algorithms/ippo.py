@@ -4,10 +4,12 @@
 #  LICENSE file in the root directory of this source tree.
 #
 
-from dataclasses import dataclass, MISSING
+from dataclasses import MISSING, dataclass
 from typing import Dict, Iterable, Tuple, Type
 
 import torch
+from benchmarl.algorithms.common import Algorithm, AlgorithmConfig
+from benchmarl.models.common import ModelConfig
 from tensordict import TensorDictBase
 from tensordict.nn import TensorDictModule, TensorDictSequential
 from tensordict.nn.distributions import NormalParamExtractor
@@ -16,9 +18,6 @@ from torchrl.data import Composite, Unbounded
 from torchrl.modules import IndependentNormal, ProbabilisticActor, TanhNormal
 from torchrl.modules.distributions import MaskedCategorical
 from torchrl.objectives import ClipPPOLoss, LossModule, ValueEstimators
-
-from benchmarl.algorithms.common import Algorithm, AlgorithmConfig
-from benchmarl.models.common import ModelConfig
 
 
 class Ippo(Algorithm):
@@ -95,14 +94,22 @@ class Ippo(Algorithm):
             sample_log_prob=(group, "log_prob"),
         )
         loss_module.make_value_estimator(
-            ValueEstimators.GAE, gamma=self.experiment_config.gamma, lmbda=self.lmbda
+            ValueEstimators.GAE,
+            gamma=self.experiment_config.gamma,
+            lmbda=self.lmbda,
         )
         return loss_module, False
 
-    def _get_parameters(self, group: str, loss: ClipPPOLoss) -> Dict[str, Iterable]:
+    def _get_parameters(
+        self, group: str, loss: ClipPPOLoss
+    ) -> Dict[str, Iterable]:
         return {
-            "loss_objective": list(loss.actor_network_params.flatten_keys().values()),
-            "loss_critic": list(loss.critic_network_params.flatten_keys().values()),
+            "loss_objective": list(
+                loss.actor_network_params.flatten_keys().values()
+            ),
+            "loss_critic": list(
+                loss.critic_network_params.flatten_keys().values()
+            ),
         }
 
     def _get_policy_for_loss(
@@ -154,7 +161,9 @@ class Ippo(Algorithm):
                 in_keys=[(group, "loc"), (group, "scale")],
                 out_keys=[(group, "action")],
                 distribution_class=(
-                    IndependentNormal if not self.use_tanh_normal else TanhNormal
+                    IndependentNormal
+                    if not self.use_tanh_normal
+                    else TanhNormal
                 ),
                 distribution_kwargs=(
                     {
@@ -201,7 +210,10 @@ class Ippo(Algorithm):
         # IPPO uses the same stochastic actor for collection
         return policy_for_loss
 
-    def process_batch(self, group: str, batch: TensorDictBase) -> TensorDictBase:
+    def process_batch(
+        self, group: str, batch: TensorDictBase
+    ) -> TensorDictBase:
+        batch = batch.to(self.device)
         keys = list(batch.keys(True, True))
         group_shape = batch.get(group).shape
 
@@ -212,7 +224,9 @@ class Ippo(Algorithm):
         if nested_done_key not in keys:
             batch.set(
                 nested_done_key,
-                batch.get(("next", "done")).unsqueeze(-1).expand((*group_shape, 1)),
+                batch.get(("next", "done"))
+                .unsqueeze(-1)
+                .expand((*group_shape, 1)),
             )
         if nested_terminated_key not in keys:
             batch.set(
@@ -225,7 +239,9 @@ class Ippo(Algorithm):
         if nested_reward_key not in keys:
             batch.set(
                 nested_reward_key,
-                batch.get(("next", "reward")).unsqueeze(-1).expand((*group_shape, 1)),
+                batch.get(("next", "reward"))
+                .unsqueeze(-1)
+                .expand((*group_shape, 1)),
             )
 
         loss = self.get_loss_and_updater(group)[0]
@@ -258,7 +274,8 @@ class Ippo(Algorithm):
         self, group: str, loss_vals: TensorDictBase
     ) -> TensorDictBase:
         loss_vals.set(
-            "loss_objective", loss_vals["loss_objective"] + loss_vals["loss_entropy"]
+            "loss_objective",
+            loss_vals["loss_objective"] + loss_vals["loss_entropy"],
         )
         del loss_vals["loss_entropy"]
         return loss_vals
