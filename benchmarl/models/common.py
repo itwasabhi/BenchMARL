@@ -182,7 +182,9 @@ class Model(TensorDictModuleBase, ABC):
                 "Sharing parameters with models that are not identical. "
                 "This might result in unintended behavior or error."
             )
-        for param, other_param in zip(self.parameters(), other_model.parameters()):
+        for param, other_param in zip(
+            self.parameters(), other_model.parameters()
+        ):
             other_param.data[:] = param.data
 
     ###############################
@@ -269,7 +271,7 @@ class ModelConfig(ABC):
             output_spec (Composite): the output spec of the model
             agent_group (str): the name of the agent group the model is for
             n_agents (int): the number of agents this module is for
-            device (str): the mdoel's device
+            device (str): the model's device
             input_has_agent_dim (bool): This tells the model if the input will have a multi-agent dimension or not.
                 For example, the input of policies will always have this set to true,
                 but critics that use a global state have this set to false as the state is shared by all agents
@@ -378,7 +380,9 @@ class ModelConfig(ABC):
         Returns: the loaded AlgorithmConfig
         """
         if path is None:
-            config = ModelConfig._load_from_yaml(name=cls.associated_class().__name__)
+            config = ModelConfig._load_from_yaml(
+                name=cls.associated_class().__name__
+            )
         else:
             config = _read_yaml_config(path)
         config = parse_model_config(config)
